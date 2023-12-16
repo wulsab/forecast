@@ -1,0 +1,183 @@
+---
+title: "Untitled"
+author: "Andrian Agusitinus Lumban Gaol"
+date: "2023-12-12"
+output: html_document
+---
+
+**Anggota Kelompok 10:** <br>
+
+120450092 - Muhammad Syahid Burhanudin Robbani <br>
+
+121450090 - Andrian Agustinus Lumban Gaol <br>
+
+121450111 - Muhammad Arsal Ranjana Utama <br>
+
+121450150 - Wulan Sabina <br>
+
+# Kasus 1
+
+Data inflasi Indonesia (mtm) sektor pendidikan, rekreasi, dan olahraga periode Januari 2008 sampai dengan Desember 2015, yaitu sebanyak 96 data deret waktu.
+
+### Langkah 1: Import Dataset dan Library yang dibutuhkan
+
+```{r}
+library(readxl) #membaca data excel
+library(tseries) #package timeseries
+library(lmtest) #untuk coeftest
+library(forecast) #untuk accuracy dan prediksi
+
+data <- read_excel("~/SM_5/adidaw/rp_usd.xlsx")
+data$Rupiah <- as.numeric(gsub(",", "", data$Rupiah))
+```
+
+### Langkah 2 : Identifikasi Model
+
+```{r}
+data <- ts(data, frequency = 12, start = c(2015, 1))
+data
+```
+
+```{r}
+plot.ts(data) #melihat plot dari data
+```
+
+### Langkah 3: Cek Stasioner Mean dan Varians
+
+#### Cek stasioner data
+
+```{r}
+adf_result <- adf.test(data)
+adf_result
+```
+
+> Karena nilai p-value \\\> alpha = 0.05 maka Tolak H0 atau data belum stasioner
+
+```{r}
+#Mengatasi data tidak stasioner pada rataan
+data1<- diff(data)
+
+# plot
+plot(data1)
+ratadiff = mean(data1)
+abline(h=ratadiff, col='red')
+
+# adf test
+adf.test(data)
+```
+
+> Karena nilai p-value \\\< alpha = 0.05 maka terima H0 atau data sudah stasioner
+
+```{r}
+acf(data1)
+pacf(data1)
+```
+
+```{r}
+data2 = diff(data1, lag=12)
+plot(data2)
+ratadiff = mean(data2)
+abline(h=ratadiff, col='red')
+adf.test(data2)
+```
+
+> Karena nilai p-value \\\< alpha = 0.05 maka terima H0 atau data sudah stasioner
+
+```{r}
+acf(data2)
+pacf(data2)
+```
+
+## SARIMA
+
+### Langkah 4 : Menentukan Orde SARIMA (p,d,q) x (P,D,Q)s
+
+```{r}
+auto.arima(data2)
+```
+
+```{r}
+model1 = arima(data2, orde=c(0,0,1), seasonal=list(order=c(2,0,0),period=12), method="ML")
+
+summary(model1)
+```
+
+```{r}
+plot(data2)
+lines(fitted(model1),col='red')
+```
+
+### Langkah 5 : Uji Diagnosa Model
+
+```{r}
+#Plot Residual
+checkresiduals(model1,plot=T)
+```
+
+```{r}
+qqnorm(model1$residuals)
+qqline(model1$residuals)
+```
+
+```{r}
+jarque.bera.test(model1$residuals)
+```
+
+### Langkah 6 : Uji Diagnosa Model
+
+> H0 : Tidak terjadi heteroskedastisitas
+>
+> H1 : Terjadi Heteroskedastisitas
+
+```{r}
+library(FinTS)
+for (i in 1:15) {
+  ArchTest <- ArchTest(model1$residuals, lags=i, demean=TRUE)
+  cat("P Value LM Test lag ke", i,"adalah" , ArchTest$p.value, "\n") }
+```
+
+> karena p-value dari lag ke 1-10 \> dari 0.05 maka terima ho
+
+```{r}
+library(rugarch)
+
+# Mengumpulkan kesalahan dari model SARIMA
+resid <- resid(model1)
+
+# Membuat model GARCH dari residu SARIMA
+garch_spec <- ugarchspec(variance.model = list(model = "sGARCH", garchOrder = c(1, 0)),
+                         mean.model = list(resid), distribution.model = "std")
+garch_model <- ugarchfit(spec = garch_spec, data = data,solver = "hybrid")
+
+# Tampilkan ringkasan model GARCH
+print(garch_model)
+```
+
+```{r}
+# Melakukan prediksi dengan model GARCH
+forecast <- ugarchforecast(garch_model, n.ahead = 11)
+forecast
+```
+
+#### Akurasi
+
+```{r}
+actual_values <- read_excel("~/SM_5/adidaw/rp_usd_2023.xlsx")
+actual_values$aktual <- as.numeric(gsub(",", "", actual_values$aktual))
+```
+
+```{r}
+# Mengambil nilai aktual
+actual_values <- actual_values$aktual
+
+# Mengambil nilai prediksi dari model GARCH
+forecast_values <- as.numeric(forecast@forecast$seriesFor[1,])
+
+# Menghitung MAPE
+mape <- mean(abs((actual_values - forecast_values) / actual_values)) * 100
+
+# Menampilkan hasil MAPE
+cat("Mean Absolute Percentage Error (MAPE):", mape, "%\n")
+```
+
+#### 
