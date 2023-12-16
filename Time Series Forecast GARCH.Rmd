@@ -1,23 +1,9 @@
 ---
-title: "Untitled"
-author: "Andrian Agusitinus Lumban Gaol"
+title: "Model GARCH"
+author: "Wulan Sabina"
 date: "2023-12-12"
 output: html_document
 ---
-
-**Anggota Kelompok 10:** <br>
-
-120450092 - Muhammad Syahid Burhanudin Robbani <br>
-
-121450090 - Andrian Agustinus Lumban Gaol <br>
-
-121450111 - Muhammad Arsal Ranjana Utama <br>
-
-121450150 - Wulan Sabina <br>
-
-# Kasus 1
-
-Data inflasi Indonesia (mtm) sektor pendidikan, rekreasi, dan olahraga periode Januari 2008 sampai dengan Desember 2015, yaitu sebanyak 96 data deret waktu.
 
 ### Langkah 1: Import Dataset dan Library yang dibutuhkan
 
@@ -27,7 +13,7 @@ library(tseries) #package timeseries
 library(lmtest) #untuk coeftest
 library(forecast) #untuk accuracy dan prediksi
 
-data <- read_excel("~/SM_5/adidaw/rp_usd.xlsx")
+data <- read_excel("rp_usd.xlsx")
 data$Rupiah <- as.numeric(gsub(",", "", data$Rupiah))
 ```
 
@@ -162,7 +148,7 @@ forecast
 #### Akurasi
 
 ```{r}
-actual_values <- read_excel("~/SM_5/adidaw/rp_usd_2023.xlsx")
+actual_values <- read_excel("rp_usd_2023.xlsx")
 actual_values$aktual <- as.numeric(gsub(",", "", actual_values$aktual))
 ```
 
